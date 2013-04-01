@@ -1,0 +1,15 @@
+{
+  "name": "ssf",
+  "version": "0.0.1",
+  "author": "Niggler",
+  "description": "pure-JS library to format data using ECMA-376 spreadsheet Format Codes",
+  "keywords": [ "format", "sprintf", "spreadsheet" ], 
+  "main": "ssf_node.js",
+  "dependencies": {
+    "voc":"",
+    "colors":""
+  },
+  "repository": { "type":"git", "url": "git://github.com/Niggler/ssf.git" },
+  "bugs": { "url": "https://github.com/Niggler/ssf/issues" },
+  "engines": { "node": ">=0.8" }
+}
