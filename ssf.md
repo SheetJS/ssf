@@ -286,14 +286,34 @@ function eval_fmt(fmt, v, opts) {
   /* Tokenize */
   while(i < fmt.length) {
     switch(c = fmt[i]) {
+```
+
+Text between double-quotes are treated literally, and individual characters are
+literal if they are preceded by a slash:
+
+```
       case '"': /* Literal text */
         for(o="";fmt[++i] !== '"';) o += fmt[(fmt[i] === '\\' ? ++i : i)];
         out.push({t:'t', v:o}); break;
       case '\\': out.push({t:'t', v:fmt[++i]}); ++i; break;
+```
+
+The '@' symbol refers to the original text.  The ECMA spec is not complete, but
+Excel does not allow for '@' and non-literal text to appear in the same format.
+It seems as if they only support one mode.  (clearly this is a TODO for excel
+mode but I'm not convinced that's the right approach) 
+
+```
       case '@': /* Text Placeholder */
         out.push({t:'T', v:v}); ++i; break;
+```
+
+The date codes `m,d,y,h,s` are standard.  There are some special formats like
+`e` (era year) that have different behaviors in Japanese/Chinese locales.  
+
+```
       /* Dates */
-      case 'm': case 'd': case 'y': case 'h': case 's':
+      case 'm': case 'd': case 'y': case 'h': case 's': case 'e':
         if(!dt) dt = parse_date_code(v, opts);
         o = fmt[i]; while(fmt[++i] === c) o+=c;
         if(c === 'm' && lst.toLowerCase() === 'h') c = 'M'; /* m = minute */
@@ -317,7 +337,7 @@ function eval_fmt(fmt, v, opts) {
   for(i=out.length-1, lst='t'; i >= 0; --i) {
     switch(out[i].t) {
       case 'h': case 'H': out[i].t = hr; lst='h'; break;
-      case 'd': case 'y': case 's': case 'M': lst=out[i].t; break;
+      case 'd': case 'y': case 's': case 'M': case 'e': lst=out[i].t; break;
       case 'm': if(lst === 's') out[i].t = 'M'; break;
       
     }
@@ -327,7 +347,7 @@ function eval_fmt(fmt, v, opts) {
   for(i=0; i < out.length; ++i) {
     switch(out[i].t) {
       case 't': case 'T': break;
-      case 'd': case 'm': case 'y': case 'h': case 'H': case 'M': case 's': case 'A':
+      case 'd': case 'm': case 'y': case 'h': case 'H': case 'M': case 's': case 'A': case 'e':
         out[i].v = write_date(out[i].t, out[i].v, dt);
         out[i].t = 't'; break;
       default: throw "unrecognized type " + out[i].t;
@@ -389,6 +409,14 @@ var write_date = function(type, fmt, val) {
       case 'ss': return pad(val.S, 2);
       default: throw 'bad second format: ' + fmt;
     }; break;
+```
+
+The `e` format behavior in excel diverges from the spec.  It claims that `ee`
+should be a two-digit year, but `ee` in excel is actually the four-digit year:
+
+```
+    /* TODO: handle the ECMA spec format ee -> yy */ 
+    case 'e': { return val.y; } break; 
     case 'A': return (val.h>=12 ? 'P' : 'A') + fmt.substr(1); 
     default: throw 'bad format type ' + type + ' in ' + fmt;
   }
@@ -470,7 +498,7 @@ node_modules/
 ```json>package.json
 {
   "name": "ssf",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Niggler",
   "description": "pure-JS library to format data using ECMA-376 spreadsheet Format Codes",
   "keywords": [ "format", "sprintf", "spreadsheet" ], 
