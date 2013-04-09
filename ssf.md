@@ -516,7 +516,7 @@ node_modules/
 # Test Driver
 
 ```js>tmp/test.njs
-var SSF = require('../ssf');
+var SSF = require('../ssf_node');
 var x = 'd\\-mmm\\-yy\\ yyyy\\ dd\\ \\;\\ yy\\ mm\\ dd';
 var y = 'd\\-mmm\\-yy\\ yyyy\\ dd\\ ;\\ yy\\ mm\\ dd';
 var z = 'd\\ dd\\ ddd\\ dddd\\ m\\ mm\\ mmm\\ mmmm\\ mmmmm\\ yy\\ yyyy';
