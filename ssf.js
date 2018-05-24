@@ -309,7 +309,7 @@ function hashq(str) {
 }
 function rnd(val, d) { 
 	var result
-	if(!("" + val).includes("e")) {
+	if(("" + val).indexOf("e") === -1) {
 		result = +(Math.round(val + "e+" + d)  + "e-" + d);
 	} else {
 		var arr = ("" + val).split("e");
