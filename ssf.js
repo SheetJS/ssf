@@ -307,7 +307,20 @@ function hashq(str) {
 	}
 	return o;
 }
-function rnd(val, d) { var dd = Math.pow(10,d); return ""+(Math.round(val * dd)/dd); }
+function rnd(val, d) { 
+	var result
+	if(!("" + val).includes("e")) {
+		result = +(Math.round(val + "e+" + d)  + "e-" + d);
+	} else {
+		var arr = ("" + val).split("e");
+		var sig = ""
+		if(+arr[1] + d > 0) {
+			sig = "+";
+		}
+		result = +(Math.round(+arr[0] + "e" + sig + (+arr[1] + d)) + "e-" + d);
+	}
+	return "" + result
+}
 function dec(val, d) {
 	if (d < ('' + Math.round((val-Math.floor(val))*Math.pow(10,d))).length) {
 		return 0;
