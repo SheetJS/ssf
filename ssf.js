@@ -319,6 +319,10 @@ function rnd(val, d) {
 		}
 		result = +(Math.round(+arr[0] + "e" + sig + (+arr[1] + d)) + "e-" + d);
 	}
+	if (isNaN(result)) {
+		var dd = Math.pow(10, d);
+		result = Math.round(val * dd) / dd;
+	}
 	return "" + result
 }
 function dec(val, d) {

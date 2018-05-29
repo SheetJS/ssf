@@ -63,6 +63,10 @@ function rnd(val/*:number*/, d/*:number*/)/*:string*/ {
 		}
 		result = +(Math.round(+arr[0] + "e" + sig + (+arr[1] + d)) + "e-" + d);
 	}
+	if (isNaN(result)) {
+		var dd = Math.pow(10, d);
+		result = Math.round(val * dd) / dd;
+	}
 	return "" + result
 }
 function dec(val/*:number*/, d/*:number*/)/*:number*/ {
