@@ -618,14 +618,36 @@ return function write_num(type, fmt, val) {
 function split_fmt(fmt) {
 	var out = [];
 	var in_str = false/*, cc*/;
-	for(var i = 0, j = 0; i < fmt.length; ++i) switch((/*cc=*/fmt.charCodeAt(i))) {
-		case 34: /* '"' */
-			in_str = !in_str; break;
-		case 95: case 42: case 92: /* '_' '*' '\\' */
-			++i; break;
-		case 59: /* ';' */
-			out[out.length] = fmt.substr(j,i-j);
-			j = i+1;
+	var escape_next = false;
+	for(var i = 0, j = 0; i < fmt.length; ++i) {
+		switch((/*cc=*/fmt.charCodeAt(i))) {
+			case 34: /* '"' */
+				if(!escape_next){
+					in_str = !in_str;
+				}
+        		escape_next = false;
+				break;
+			case 92: /* '\\' */
+				if(!in_str){
+					++i;
+					escape_next = false;
+				}else{
+					escape_next = true;
+				}
+				break;
+			case 95: case 42:  /* '_' '*'*/
+				if(!in_str){
+					++i;
+				}
+        		escape_next = false;
+				break;
+			case 59: /* ';' */
+				if(!in_str){
+					out[out.length] = fmt.substr(j,i-j);
+					j = i+1;		
+				}
+        		escape_next = false;
+		}
 	}
 	out[out.length] = fmt.substr(j);
 	if(in_str === true) throw new Error("Format |" + fmt + "| unterminated string ");
@@ -679,83 +701,84 @@ function eval_fmt(fmt, v, opts, flen) {
 	var out = [], o = "", i = 0, c = "", lst='t', dt, j, cc;
 	var hr='H';
 	/* Tokenize */
-	while(i < fmt.length) {
-		switch((c = fmt.charAt(i))) {
-			case 'G': /* General */
-				if(!isgeneral(fmt, i)) throw new Error('unrecognized character ' + c + ' in ' +fmt);
-				out[out.length] = {t:'G', v:'General'}; i+=7; break;
-			case '"': /* Literal text */
-				for(o="";(cc=fmt.charCodeAt(++i)) !== 34 && i < fmt.length;) o += String.fromCharCode(cc);
-				out[out.length] = {t:'t', v:o}; ++i; break;
-			case '\\': var w = fmt.charAt(++i), t = (w === "(" || w === ")") ? w : 't';
-				out[out.length] = {t:t, v:w}; ++i; break;
-			case '_': out[out.length] = {t:'t', v:" "}; i+=2; break;
-			case '@': /* Text Placeholder */
-				out[out.length] = {t:'T', v:v}; ++i; break;
-			case 'B': case 'b':
-				if(fmt.charAt(i+1) === "1" || fmt.charAt(i+1) === "2") {
+	if(fmt.length == 0){
+		out[out.length] = {t:" ", v:" "};
+	}else{
+		while(i < fmt.length) {
+			switch((c = fmt.charAt(i))) {
+				case 'G': /* General */
+					if(!isgeneral(fmt, i)) throw new Error('unrecognized character ' + c + ' in ' +fmt);
+					out[out.length] = {t:'G', v:'General'}; i+=7; break;
+				case '"': /* Literal text */
+					for(o="";(cc=fmt.charCodeAt(++i)) !== 34 && i < fmt.length;) o += String.fromCharCode(cc);
+					out[out.length] = {t:'t', v:o}; ++i; break;
+				case '\\': var w = fmt.charAt(++i), t = (w === "(" || w === ")") ? w : 't';
+					out[out.length] = {t:t, v:w}; ++i; break;
+				case '_': out[out.length] = {t:'t', v:" "}; i+=2; break;
+				case '@': /* Text Placeholder */
+					out[out.length] = {t:'T', v:v}; ++i; break;
+				case 'B': case 'b':
+					if(fmt.charAt(i+1) === "1" || fmt.charAt(i+1) === "2") {
 					if(dt==null) { dt=parse_date_code(v, opts, fmt.charAt(i+1) === "2"); if(dt==null) return ""; }
 					out[out.length] = {t:'X', v:fmt.substr(i,2)}; lst = c; i+=2; break;
-				}
-				/* falls through */
-			case 'M': case 'D': case 'Y': case 'H': case 'S': case 'E':
-				c = c.toLowerCase();
-				/* falls through */
-			case 'm': case 'd': case 'y': case 'h': case 's': case 'e': case 'g':
-				if(v < 0) return "";
-				if(dt==null) { dt=parse_date_code(v, opts); if(dt==null) return ""; }
-				o = c; while(++i < fmt.length && fmt.charAt(i).toLowerCase() === c) o+=c;
-				if(c === 'm' && lst.toLowerCase() === 'h') c = 'M';
-				if(c === 'h') c = hr;
-				out[out.length] = {t:c, v:o}; lst = c; break;
-			case 'A': case 'a': case '上':
-				var q={t:c, v:c};
-				if(dt==null) dt=parse_date_code(v, opts);
-				if(fmt.substr(i, 3).toUpperCase() === "A/P") { if(dt!=null) q.v = dt.H >= 12 ? "P" : "A"; q.t = 'T'; hr='h';i+=3;}
-				else if(fmt.substr(i,5).toUpperCase() === "AM/PM") { if(dt!=null) q.v = dt.H >= 12 ? "PM" : "AM"; q.t = 'T'; i+=5; hr='h'; }
-				else if(fmt.substr(i,5).toUpperCase() === "上午/下午") { if(dt!=null) q.v = dt.H >= 12 ? "下午" : "上午"; q.t = 'T'; i+=5; hr='h'; }
-				else { q.t = "t"; ++i; }
-				if(dt==null && q.t === 'T') return "";
-				out[out.length] = q; lst = c; break;
-			case '[':
-				o = c;
-				while(fmt.charAt(i++) !== ']' && i < fmt.length) o += fmt.charAt(i);
-				if(o.slice(-1) !== ']') throw 'unterminated "[" block: |' + o + '|';
-				if(o.match(abstime)) {
+					}
+					/* falls through */
+				case 'M': case 'D': case 'Y': case 'H': case 'S': case 'E':
+					c = c.toLowerCase();
+					/* falls through */
+				case 'm': case 'd': case 'y': case 'h': case 's': case 'e': case 'g':
+					if(v < 0) return "";
+					if(dt==null) { dt=parse_date_code(v, opts); if(dt==null) return ""; }
+					o = c; while(++i < fmt.length && fmt.charAt(i).toLowerCase() === c) o+=c;
+					if(c === 'm' && lst.toLowerCase() === 'h') c = 'M';
+					if(c === 'h') c = hr;
+					out[out.length] = {t:c, v:o}; lst = c; break;
+				case 'A': case 'a':
+					var q={t:c, v:c};
+					if(dt==null) dt=parse_date_code(v, opts);
+					if(fmt.substr(i, 3).toUpperCase() === "A/P") { if(dt!=null) q.v = dt.H >= 12 ? "P" : "A"; q.t = 'T'; hr='h';i+=3;}
+					else if(fmt.substr(i,5).toUpperCase() === "AM/PM") { if(dt!=null) q.v = dt.H >= 12 ? "PM" : "AM"; q.t = 'T'; i+=5; hr='h'; }
+					else { q.t = "t"; ++i; }
+					if(dt==null && q.t === 'T') return "";
+					out[out.length] = q; lst = c; break;
+				case '[':
+					o = c;
+					while(fmt.charAt(i++) !== ']' && i < fmt.length) o += fmt.charAt(i);
+					if(o.slice(-1) !== ']') throw 'unterminated "[" block: |' + o + '|';
+					if(o.match(abstime)) {
 					if(dt==null) { dt=parse_date_code(v, opts); if(dt==null) return ""; }
 					out[out.length] = {t:'Z', v:o.toLowerCase()};
 					lst = o.charAt(1);
-				} else if(o.indexOf("$") > -1) {
+					} else if(o.indexOf("$") > -1) {
 					o = (o.match(/\$([^-\[\]]*)/)||[])[1]||"$";
 					if(!fmt_is_date(fmt)) out[out.length] = {t:'t',v:o};
-				}
-				break;
-			/* Numbers */
-			case '.':
-				if(dt != null) {
+					}
+					break;
+				/* Numbers */
+				case '.':
+					if(dt != null) {
 					o = c; while(++i < fmt.length && (c=fmt.charAt(i)) === "0") o += c;
 					out[out.length] = {t:'s', v:o}; break;
-				}
-				/* falls through */
-			case '0': case '#':
-				o = c; while(++i < fmt.length && "0#?.,E+-%".indexOf(c=fmt.charAt(i)) > -1) o += c;
-				out[out.length] = {t:'n', v:o}; break;
-			case '?':
-				o = c; while(fmt.charAt(++i) === c) o+=c;
-				out[out.length] = {t:c, v:o}; lst = c; break;
-			case '*': ++i; if(fmt.charAt(i) == ' ' || fmt.charAt(i) == '*') ++i; break; // **
-			case '(': case ')': out[out.length] = {t:(flen===1?'t':c), v:c}; ++i; break;
-			case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
-				o = c; while(i < fmt.length && "0123456789".indexOf(fmt.charAt(++i)) > -1) o+=fmt.charAt(i);
-				out[out.length] = {t:'D', v:o}; break;
-			case ' ': out[out.length] = {t:c, v:c}; ++i; break;
-			case '$': out[out.length] = {t:'t', v:'$'}; ++i; break;
-			default:
-				if(",$-+/():!^&'~{}<>=€acfijklopqrtuvwxzP".indexOf(c) === -1) throw new Error('unrecognized character ' + c + ' in ' + fmt);
-				out[out.length] = {t:'t', v:c}; ++i; break;
+					}
+					/* falls through */
+				case '0': case '#':
+					o = c; while((++i < fmt.length && "0#?.,E+-%".indexOf(c=fmt.charAt(i)) > -1) || (c=='\\' && fmt.charAt(i+1) == "-" && i < fmt.length - 2 && "0#".indexOf(fmt.charAt(i+2))>-1)) o += c;
+					out[out.length] = {t:'n', v:o}; break;
+				case '?':
+					o = c; while(fmt.charAt(++i) === c) o+=c;
+					out[out.length] = {t:c, v:o}; lst = c; break;
+				case '*': ++i; if(fmt.charAt(i) == ' ' || fmt.charAt(i) == '*') ++i; break; // **
+				case '(': case ')': out[out.length] = {t:(flen===1?'t':c), v:c}; ++i; break;
+				case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+					o = c; while(i < fmt.length && "0123456789".indexOf(fmt.charAt(++i)) > -1) o+=fmt.charAt(i);
+					out[out.length] = {t:'D', v:o}; break;
+				case ' ': out[out.length] = {t:c, v:c}; ++i; break;
+				default:
+					if(",$-+/():!^&'~{}<>=€acfijklopqrtuvwxzP".indexOf(c) === -1) throw new Error('unrecognized character ' + c + ' in ' + fmt);
+					out[out.length] = {t:'t', v:c}; ++i; break;
+			}
 		}
 	}
-
 	/* Scan for date/time parts */
 	var bt = 0, ss0 = 0, ssm;
 	for(i=out.length-1, lst='t'; i >= 0; --i) {
@@ -779,12 +802,12 @@ function eval_fmt(fmt, v, opts, flen) {
 	switch(bt) {
 		case 0: break;
 		case 1:
-if(dt.u >= 0.5) { dt.u = 0; ++dt.S; }
+			if(dt.u >= 0.5) { dt.u = 0; ++dt.S; }
 			if(dt.S >=  60) { dt.S = 0; ++dt.M; }
 			if(dt.M >=  60) { dt.M = 0; ++dt.H; }
 			break;
 		case 2:
-if(dt.u >= 0.5) { dt.u = 0; ++dt.S; }
+			if(dt.u >= 0.5) { dt.u = 0; ++dt.S; }
 			if(dt.S >=  60) { dt.S = 0; ++dt.M; }
 			break;
 	}
@@ -796,7 +819,7 @@ if(dt.u >= 0.5) { dt.u = 0; ++dt.S; }
 			case 't': case 'T': case ' ': case 'D': break;
 			case 'X': out[i].v = ""; out[i].t = ";"; break;
 			case 'd': case 'm': case 'y': case 'h': case 'H': case 'M': case 's': case 'e': case 'b': case 'Z':
-out[i].v = write_date(out[i].t.charCodeAt(0), out[i].v, dt, ss0);
+				out[i].v = write_date(out[i].t.charCodeAt(0), out[i].v, dt, ss0);
 				out[i].t = 't'; break;
 			case 'n': case '?':
 				jj = i+1;
