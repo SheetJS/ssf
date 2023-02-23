@@ -5,4 +5,6 @@ spreadsheet format codes (used in popular spreadsheet software packages).
 
 This project has been moved into the main SheetJS open source repo.
 
-New URL: <https://github.com/SheetJS/sheetjs/tree/master/packages/ssf>
+New URL: <https://git.sheetjs.com/sheetjs/sheetjs/src/branch/master/packages/ssf>
+
+Issue Tracker: <https://git.sheetjs.com/sheetjs/sheetjs/issues>
