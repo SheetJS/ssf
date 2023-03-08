@@ -29,6 +29,13 @@ function parse_date_code(v/*:number*/,opts/*:?any*/,b2/*:?boolean*/) {
 	return out;
 }
 SSF.parse_date_code = parse_date_code;
+function getTimezoneOffsetMS(date/*:Date*/)/*:number*/ {
+	// This function is a replacement for Date.getTimezoneOffset() which isn't
+	// precise enough for countries (like France, Russia or Spain) that were still on solar time in 1899
+	var time = date.getTime();
+	var utcTime = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds());
+	return time - utcTime;
+};
 var basedate = new Date(1899, 11, 31, 0, 0, 0);
 var dnthresh = basedate.getTime();
 var base1904 = new Date(1900, 2, 1, 0, 0, 0);
@@ -36,5 +43,5 @@ function datenum_local(v/*:Date*/, date1904/*:?boolean*/)/*:number*/ {
 	var epoch = v.getTime();
 	if(date1904) epoch -= 1461*24*60*60*1000;
 	else if(v >= base1904) epoch += 24*60*60*1000;
-	return (epoch - (dnthresh + (v.getTimezoneOffset() - basedate.getTimezoneOffset()) * 60000)) / (24 * 60 * 60 * 1000);
+	return (epoch - (dnthresh + (getTimezoneOffsetMS(v) - getTimezoneOffsetMS(basedate)))) / (24 * 60 * 60 * 1000);
 }
