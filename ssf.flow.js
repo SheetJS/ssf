@@ -401,7 +401,24 @@ function hashq(str/*:string*/)/*:string*/ {
 	}
 	return o;
 }
-function rnd(val/*:number*/, d/*:number*/)/*:string*/ { var dd = Math.pow(10,d); return ""+(Math.round(val * dd)/dd); }
+function rnd(val/*:number*/, d/*:number*/)/*:string*/ { 
+	var result
+	if(("" + val).indexOf("e") === -1) {
+		result = +(Math.round(val + "e+" + d)  + "e-" + d);
+	} else {
+		var arr = ("" + val).split("e");
+		var sig = ""
+		if(+arr[1] + d > 0) {
+			sig = "+";
+		}
+		result = +(Math.round(+arr[0] + "e" + sig + (+arr[1] + d)) + "e-" + d);
+	}
+	if (isNaN(result)) {
+		var dd = Math.pow(10, d);
+		result = Math.round(val * dd) / dd;
+	}
+	return "" + result
+}
 function dec(val/*:number*/, d/*:number*/)/*:number*/ {
 	var _frac = val - Math.floor(val), dd = Math.pow(10,d);
 	if (d < ('' + Math.round(_frac * dd)).length) return 0;
