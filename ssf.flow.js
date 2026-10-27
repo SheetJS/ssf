@@ -740,6 +740,7 @@ function eval_fmt(fmt/*:string*/, v/*:any*/, opts/*:any*/, flen/*:number*/) {
 			/* Numbers */
 			case '.':
 				if(dt != null) {
+					if(fmt.charAt(i+1) !== '0') { out[out.length] = {t:'t', v:c}; ++i; break; }
 					o = c; while(++i < fmt.length && (c=fmt.charAt(i)) === "0") o += c;
 					out[out.length] = {t:'s', v:o}; break;
 				}

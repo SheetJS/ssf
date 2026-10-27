@@ -36,3 +36,14 @@ describe('date formats', function() {
     bad.forEach(function(fmt){assert.throws(chk(fmt));});
   });
 });
+
+describe('literal periods in date formats', function() {
+  it('preserves period separators and trailing punctuation', function() {
+    assert.equal(SSF.format('yyyy.mm.dd', 45779), '2025.05.02');
+    assert.equal(SSF.format('yyyy.mm.dd.', 45779), '2025.05.02.');
+    assert.equal(SSF.format('yyyy.mm.dd. hh:mm:ss', 45779.201898148145), '2025.05.02. 04:50:44');
+  });
+  it('keeps fractional-second placeholders after literal date periods', function() {
+    assert.equal(SSF.format('yyyy.mm.dd. hh:mm:ss.000', 45779.201898148145), '2025.05.02. 04:50:44.000');
+  });
+});
